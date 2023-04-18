@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Samba.FBX</title>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0"
+    />
+  </head>
+
+  <body>
+    <p style="text-align: center">공식 예제</p>
+    <a
+      href="https://github.com/mrdoob/three.js/blob/master/examples/webgl_loader_fbx.html"
+      >깃허브 보기</a
+    >
+    <!-- https://github.com/mrdoob/three.js/blob/master/examples/webgl_loader_fbx.html -->
+    <!-- FBXLoader, Three, Three/addons/ 순차적으로 import -->
+    <!-- Three/addons/ : 부가적인 기능 플러그인 -->
+    <script type="importmap">
+      {
+        "imports": {
+          "FBXLoader": "https://unpkg.com/three@0.151.3/examples/jsm/loaders/FBXLoader.js",
+          "three": "https://unpkg.com/three@0.151.3/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.151.3/examples/jsm/"
+        }
+      }
+    </script>
+
+    <script type="module">
+      import * as THREE from "three";
+
+      import Stats from "three/addons/libs/stats.module.js";
+      import { FBXLoader } from "three/addons/loaders/FBXLoader.js";
+      import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+      THREE.ColorManagement.enabled = true;
+
+      let camera, scene, renderer, stats, mixer;
+
+      const clock = new THREE.Clock(); //객체의 시간을 추적하는 용도. 생성자의 타입은 boolean
+
+      // DOM 생성
+      const container = document.createElement("div");
+      document.body.appendChild(container);
+
+      // 초기화
+      function init() {
+        /** ____________________________________________________________________________________________
+         *
+         * PerspectiveCamera(fov, aspect, near, far)
+         * - fov : 한번에 볼 수 있는 시야 영역. 90도인 경우 전방위를 1/4 화면에 보여줌. 높으면 화면 일그러짐
+         * - aspect : 카메라의 가로세율 비율. 요소의 너비를 높이로 나눈 값을 사용하는 것을 권장
+         * - near, far :절두체 (https://docs.unity3d.com/kr/2021.3/Manual/UnderstandingFrustum.html) **/
+        camera = new THREE.PerspectiveCamera(
+          45,
+          window.innerWidth / window.innerHeight,
+          100,
+          3000
+        );
+
+        camera.position.set(100, 200, 300); //(x,y,z)
+
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xa0a0a0);
+
+        /** ____________________________________________________________________________________________
+         *
+         * Fog(color, near, far)
+         *  - near: 카메라 기준 near만큼 떨어진 곳에서 시작
+         *  - far : 카메라 기준 far 거리 까지 안개 생성
+         *  near > far 인 경우 안개가 앞에 생성 ex:(500, 300)**/
+        scene.fog = new THREE.Fog(0xa0a0a0, 100, 2000);
+
+        /**____________________________________________________________________________________________
+         *
+         * AmbientLight(color, intensity) : 모든 방향에 조명을 비춘다. 재질은 인자로 넘겨도 되고 후에 변경 가능.
+         * DirectionalLight(color, intencity) : 태양광. 평행하게 이동하는 빛, position을 통해 빛 위치 변경 가능(기본값 : 위에서 아래)
+         * HemisphereLight(top_color, bottom_color, intensity) : 두 가지 색상을 매개변수로 받는다.(위에서 아래로 , 아래서 위로 빛을 발한다.)
+         * PointLight(color, light(밝기 정도), distance, decay(흐려지는정도)) : 정말 포인트 조명.
+         * */
+        const hemiLight = new THREE.HemisphereLight(0xffffff, 0xd946ef, 1);
+        hemiLight.position.set(0, 200, 0);
+        scene.add(hemiLight);
+
+        const pointLight = new THREE.PointLight(0x7c3aed, 20, 200, 5);
+        pointLight.position.x = 2;
+        pointLight.position.y = 100;
+        pointLight.position.z = 0;
+        scene.add(pointLight);
+
+        const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
+        dirLight.position.set(0, 200, 100);
+        dirLight.castShadow = true; // 그림자 유무 결정
+        dirLight.shadow.camera.top = 180;
+        dirLight.shadow.camera.bottom = -100;
+        dirLight.shadow.camera.left = -120;
+        dirLight.shadow.camera.right = 120;
+        scene.add(dirLight);
+
+        // 카메라 가이드라인을 볼 수 있다. 태양광 조명 확인 가능
+        // scene.add(new THREE.CameraHelper(dirLight.shadow.camera));
+
+        // ____________________________________________________________________________________________
+        // Ground
+        const mesh = new THREE.Mesh(
+          new THREE.PlaneGeometry(200, 200),
+          new THREE.MeshPhongMaterial({ color: 0x999999, depthWrite: false })
+        );
+        mesh.rotation.x = -Math.PI / 2;
+        mesh.receiveShadow = true; //바닥에 그림자 생성
+        scene.add(mesh);
+
+        const grid = new THREE.GridHelper(2000, 20, 0x000000, 0x000000);
+        grid.material.opacity = 0.2;
+        grid.material.transparent = true;
+        scene.add(grid);
+
+        // ____________________________________________________________________________________________
+        // Model
+        const loader = new FBXLoader();
+        loader.load("./Samba.fbx", function (object) {
+          mixer = new THREE.AnimationMixer(object);
+
+          // FBX 파일에 있는 모션 실행
+          const action = mixer.clipAction(object.animations[0]);
+          action.play();
+
+          object.traverse(function (child) {
+            if (child.isMesh) {
+              //모델에 그림자 생성
+              child.castShadow = true;
+              child.receiveShadow = true;
+            }
+          });
+
+          scene.add(object);
+        });
+
+        renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.outputEncoding = THREE.sRGBEncoding;
+        renderer.shadowMap.enabled = true;
+        container.appendChild(renderer.domElement);
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.target.set(0, 100, 0);
+        controls.update();
+
+        window.addEventListener("resize", onWindowResize);
+
+        // stats
+        stats = new Stats();
+        container.appendChild(stats.dom);
+      }
+
+      function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      }
+
+      //
+
+      function animate() {
+        requestAnimationFrame(animate);
+
+        const delta = clock.getDelta();
+
+        if (mixer) mixer.update(delta);
+
+        renderer.render(scene, camera);
+
+        stats.update();
+      }
+
+      init();
+      animate();
+    </script>
+  </body>
+</html>

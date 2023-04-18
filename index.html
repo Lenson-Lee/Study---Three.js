@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Three JS / 순수 JS 공부</title>
+  </head>
+  <body>
+    <canvas id="canvas" width="500" height="500"> </canvas>
+    <canvas id="canvas-2" width="500" height="500"> </canvas>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.151.3/build/three.module.js",
+          "GLTFLoader": "https://unpkg.com/three@0.151.3/examples/jsm/loaders/GLTFLoader.js",
+          "three/addons/": "https://unpkg.com/three@0.151.3/examples/jsm/",
+          "three/": "https://cdn.skypack.dev/three@0.142.0/"
+        }
+      }
+    </script>
+
+    <script type="module">
+      import * as THREE from "three";
+      import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+      import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+
+      //Scene : 장면 만들기(선택한 캔버스에 렌더링)
+      const scene_miku = new THREE.Scene();
+      const scene_mouse = new THREE.Scene();
+
+      let renderer_miku = new THREE.WebGLRenderer({
+        canvas: document.querySelector("#canvas"),
+        antialias: true,
+      });
+      let renderer_mouse = new THREE.WebGLRenderer({
+        canvas: document.querySelector("#canvas-2"),
+        antialias: true,
+      });
+      renderer_miku.outputEncoding = THREE.sRGBEncoding; //색상 정상적으로 나오게 설정
+      renderer_mouse.outputEncoding = THREE.sRGBEncoding; //색상 정상적으로 나오게 설정
+
+      /** ________________________________________________________________________
+       *  Camera
+       *   - (0,0,0 일 경우 개체의 정 중앙(뱃속)이라 보이지 않음. z축 조정 필요)
+       *   - PerspactiveCamera(원근법 O) , OrthographicCamera(원근법 X)
+       *  Light
+       *   - new THREE.AmbientLight(0x색상값, 밝기정도1~10)
+       *   - 설정 안하면 개체 까맣게 나옴
+       *   - 질감에 따라 빛이 안들어갈 수도 있다
+       *  Controls
+       *  - OrbitControls를 사용하여 클릭 컨트롤이벤트 설정
+       *  */
+
+      let camera = new THREE.PerspectiveCamera(30, 1);
+      camera.position.set(0, 0, 10); //(x,y,z)
+
+      scene_miku.background = new THREE.Color("white");
+      scene_mouse.background = new THREE.Color("skyblue");
+
+      let light_miku = new THREE.AmbientLight(0xffffff, 1); //(0x색상값, 밝기정도(1-10))
+      let light_mouse = new THREE.AmbientLight(0xffaaaa, 0.9); //(0x색상값, 밝기정도)
+
+      const controls_miku = new OrbitControls(camera, renderer_miku.domElement);
+      const controls_mouse = new OrbitControls(
+        camera,
+        renderer_mouse.domElement
+      );
+      controls_miku.listenToKeyEvents(window); // optional
+      controls_mouse.listenToKeyEvents(window); // optional
+
+      // ________________________________________________________________________
+
+      // Render
+
+      //GLTF 파일의 경우 GLTFLoader 도움이 필요
+      let loader_miku = new GLTFLoader();
+      let loader_mouse = new GLTFLoader();
+
+      // loader.load(파일경로, 로딩 후 실행할 함수)
+      loader_miku.load("miku/scene.gltf", function (miku) {
+        scene_miku.add(miku.scene, light_miku);
+
+        // animation(1초에 60번 실행)
+        function animate() {
+          requestAnimationFrame(animate);
+          miku.scene.rotation.y += 0.1;
+          renderer_miku.render(scene_miku, camera);
+          controls_miku.update();
+        }
+        animate();
+        // renderer.render(scene, camera); //animate() 사용 안할 때는 바로 렌더
+      });
+      loader_mouse.load("mouse/scene.gltf", function (mouse) {
+        scene_mouse.add(mouse.scene, light_mouse, light_mouse.targe);
+        function animate() {
+          requestAnimationFrame(animate);
+          mouse.scene.rotation.x -= 0.2;
+          mouse.scene.rotation.y += 0.1;
+          renderer_mouse.render(scene_mouse, camera);
+          controls_mouse.update();
+        }
+        animate();
+      });
+    </script>
+  </body>
+</html>
