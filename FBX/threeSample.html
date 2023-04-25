@@ -37,7 +37,7 @@
 
       THREE.ColorManagement.enabled = true;
 
-      let camera, scene, renderer, stats, mixer;
+      let camera, scene, group, renderer, stats, mixer1, mixer2;
 
       const clock = new THREE.Clock(); //객체의 시간을 추적하는 용도. 생성자의 타입은 boolean
 
@@ -63,6 +63,8 @@
         camera.position.set(100, 200, 300); //(x,y,z)
 
         scene = new THREE.Scene();
+        group = new THREE.Group(); // 객체들을 담을 그룹박스. 그룹을 scene에 담을 예정
+
         scene.background = new THREE.Color(0xa0a0a0);
 
         /** ____________________________________________________________________________________________
@@ -74,13 +76,14 @@
         scene.fog = new THREE.Fog(0xa0a0a0, 100, 2000);
 
         /**____________________________________________________________________________________________
+         * https://velog.io/@9rganizedchaos/Three.js-journey-%EA%B0%95%EC%9D%98%EB%85%B8%ED%8A%B8-14
          *
          * AmbientLight(color, intensity) : 모든 방향에 조명을 비춘다. 재질은 인자로 넘겨도 되고 후에 변경 가능.
          * DirectionalLight(color, intencity) : 태양광. 평행하게 이동하는 빛, position을 통해 빛 위치 변경 가능(기본값 : 위에서 아래)
          * HemisphereLight(top_color, bottom_color, intensity) : 두 가지 색상을 매개변수로 받는다.(위에서 아래로 , 아래서 위로 빛을 발한다.)
          * PointLight(color, light(밝기 정도), distance, decay(흐려지는정도)) : 정말 포인트 조명.
          * */
-        const hemiLight = new THREE.HemisphereLight(0xffffff, 0xd946ef, 1);
+        const hemiLight = new THREE.HemisphereLight(0xffffff, 0xd946ef, 0.5);
         hemiLight.position.set(0, 200, 0);
         scene.add(hemiLight);
 
@@ -88,7 +91,12 @@
         pointLight.position.x = 2;
         pointLight.position.y = 100;
         pointLight.position.z = 0;
-        scene.add(pointLight);
+
+        const pointLightYellow = new THREE.PointLight(0xfde047, 20, 200, 5);
+        pointLightYellow.position.x = 100;
+        pointLightYellow.position.y = 150;
+        pointLightYellow.position.z = 0;
+        scene.add(pointLight, pointLightYellow);
 
         const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
         dirLight.position.set(0, 200, 100);
@@ -105,7 +113,7 @@
         // ____________________________________________________________________________________________
         // Ground
         const mesh = new THREE.Mesh(
-          new THREE.PlaneGeometry(200, 200),
+          new THREE.PlaneGeometry(2000, 2000),
           new THREE.MeshPhongMaterial({ color: 0x999999, depthWrite: false })
         );
         mesh.rotation.x = -Math.PI / 2;
@@ -118,13 +126,21 @@
         scene.add(grid);
 
         // ____________________________________________________________________________________________
+
+        const cube1 = new THREE.Mesh(
+          new THREE.BoxGeometry(1, 1, 1),
+          new THREE.MeshBasicMaterial({ color: 0xff0000 })
+        );
+
+        // ____________________________________________________________________________________________
         // Model
         const loader = new FBXLoader();
+        const loader2 = new FBXLoader();
         loader.load("./Samba.fbx", function (object) {
-          mixer = new THREE.AnimationMixer(object);
+          mixer1 = new THREE.AnimationMixer(object);
 
           // FBX 파일에 있는 모션 실행
-          const action = mixer.clipAction(object.animations[0]);
+          const action = mixer1.clipAction(object.animations[0]);
           action.play();
 
           object.traverse(function (child) {
@@ -135,8 +151,28 @@
             }
           });
 
-          scene.add(object);
+          object.position.x = 100;
+          object.position.z = -100;
+          group.add(object);
         });
+
+        loader2.load("./Samba.fbx", function (object) {
+          mixer2 = new THREE.AnimationMixer(object);
+          // FBX 파일에 있는 모션 실행
+          const action = mixer2.clipAction(object.animations[0]);
+          action.play();
+
+          object.traverse(function (child) {
+            if (child.isMesh) {
+              //모델에 그림자 생성
+              child.castShadow = true;
+              child.receiveShadow = true;
+            }
+          });
+          group.add(object);
+        });
+        group.position.y = 10;
+        scene.add(group);
 
         renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setPixelRatio(window.devicePixelRatio);
@@ -170,8 +206,10 @@
 
         const delta = clock.getDelta();
 
-        if (mixer) mixer.update(delta);
-
+        if (mixer1) mixer1.update(delta);
+        if (mixer2) mixer2.update(delta);
+        // scene.rotation.y -= 0.005;
+        // scene.rotation.x -= 0.05;
         renderer.render(scene, camera);
 
         stats.update();
