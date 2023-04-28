@@ -75,14 +75,15 @@
         // mesh 반복 _________________________________________________________
 
         for (let i = 0; i < 10; i++) {
+          //도형생성
           mesh = new THREE.Mesh(geometry, material);
-          mesh.position.x = i / 10;
-          mesh.position.y = i / 10;
-          mesh.position.z = i / 10;
-          // mesh.position.y = Math.random() * 1000 - 800;
           mesh.scale.x = 0.5;
           mesh.scale.y = 0.5;
           mesh.scale.z = 0.5;
+          //위치선정
+          mesh.position.x = i + (i % 2);
+          mesh.position.y = i + (i % 2);
+          mesh.position.z = i + (i % 2);
           mesh.updateMatrix();
           mesh.matrixAutoUpdate = false;
           scene.add(mesh);

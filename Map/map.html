@@ -90,15 +90,15 @@
           flatShading: true,
         });
 
-        for (let i = 0; i < 500; i++) {
+        for (let i = 0; i < 100; i++) {
           const mesh = new THREE.Mesh(geometry, material);
-          mesh.position.x = Math.random() * 1600 - 800;
+          mesh.position.x = 20 * i;
           mesh.position.y = 0;
           // mesh.position.y = Math.random() * 1000 - 800;
-          mesh.position.z = Math.random() * 1600 - 800;
-          mesh.scale.x = 20;
-          mesh.scale.y = Math.random() * 80 + 10;
-          mesh.scale.z = 20;
+          mesh.position.z = 20 * i;
+          mesh.scale.x = i;
+          mesh.scale.y = i;
+          mesh.scale.z = i;
           mesh.updateMatrix();
           mesh.matrixAutoUpdate = false;
           scene.add(mesh);
