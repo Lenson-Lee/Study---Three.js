@@ -126,6 +126,13 @@
         const blocker = document.getElementById("blocker");
         const instructions = document.getElementById("instructions");
 
+        // Move Event ________________________________________________
+        // Add an event listener to the window to update the mouse position when it moves
+        window.addEventListener("mousemove", (event) => {
+          mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+          mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+        });
+
         //Click Event ________________________________________________
         instructions.addEventListener("click", function () {
           controls.lock();
@@ -201,6 +208,8 @@
         document.addEventListener("keydown", onKeyDown);
         document.addEventListener("keyup", onKeyUp);
 
+        document.addEventListener("click", onClick, false);
+
         raycaster = new THREE.Raycaster(
           new THREE.Vector3(),
           new THREE.Vector3(0, -1, 0),
@@ -258,33 +267,25 @@
 
         /** Loader _______________________________________________________________ **/
 
-        tree.load("../FBX/tree/trees/06/Col_1_tree_6.fbx", function (item) {
-          item.position.x = +60;
-          item.position.y = 0;
-          item.position.z = -120;
-          item.scale.multiplyScalar(2);
-          item.rotation.x = 30;
-          group.add(item);
+        tree2.load("../FBX/tree/trees/05/Col_1_tree_5.fbx", function (tree2) {
+          tree2.position.x = -40;
+          tree2.position.y = 0;
+          tree2.position.z = -60;
+          tree2.scale.multiplyScalar(2);
+          tree2.rotation.x = 30;
+          group.add(tree2);
         });
-        tree2.load("../FBX/tree/trees/05/Col_1_tree_5.fbx", function (item) {
-          item.position.x = -40;
-          item.position.y = 0;
-          item.position.z = -60;
-          item.scale.multiplyScalar(2);
-          item.rotation.x = 30;
-          group.add(item);
-        });
-        house.load("../FBX/house/woodHouse/woodhouse.fbx", function (item) {
-          item.position.x = 0;
-          item.position.y = 0;
-          item.position.z = -120;
-          item.scale.multiplyScalar(0.2);
-          item.rotation.y = 30;
-          group.add(item);
+        house.load("../FBX/house/woodHouse/woodhouse.fbx", function (house) {
+          house.position.x = 0;
+          house.position.y = 0;
+          house.position.z = -120;
+          house.scale.multiplyScalar(0.2);
+          house.rotation.y = 30;
+          group.add(house);
         });
         // << -- loader End -- >>
-
         scene.add(group);
+        console.log(scene.children);
         renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setPixelRatio(window.devicePixelRatio);
         renderer.setSize(window.innerWidth, window.innerHeight);
@@ -295,9 +296,28 @@
         document.body.appendChild(renderer.domElement);
       }
 
+      const element = scene.getObjectByName("group");
+      element.addEventListener("click", function () {
+        console.log("Element clicked!");
+      });
+      element.userData = { clickable: true };
+
       function onClick(event) {
-        console.log("Clicked on the cube!");
+        // update the picking ray with the camera and mouse position
+        raycaster.setFromCamera(mouse, camera);
+
+        // calculate objects intersecting the picking ray
+        const intersects = raycaster.intersectObjects(scene.children, true);
+
+        for (let i = 0; i < intersects.length; i++) {
+          const object = intersects[i].object;
+
+          if (object.userData.clickable) {
+            object.dispatchEvent({ type: "click" });
+          }
+        }
       }
+      //
       function onWindowResize() {
         camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
